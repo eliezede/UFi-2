@@ -61,6 +61,18 @@ const Upload: React.FC = () => {
     setAudioPreview(url);
   };
 
+  const getAudioDuration = (file: File): Promise<number> => {
+    return new Promise((resolve) => {
+      const audio = new Audio();
+      audio.preload = 'metadata';
+      audio.onloadedmetadata = () => {
+        window.URL.revokeObjectURL(audio.src);
+        resolve(audio.duration);
+      };
+      audio.src = URL.createObjectURL(file);
+    });
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -98,12 +110,15 @@ const Upload: React.FC = () => {
     setUploading(true);
 
     try {
-      // 1. Upload Audio
+      // 1. Get Duration
+      const duration = await getAudioDuration(audioFile);
+
+      // 2. Upload Audio
       const audioRef = ref(storage, `tracks/${currentUser.uid}/${Date.now()}_${audioFile.name}`);
       await uploadBytes(audioRef, audioFile);
       const audioURL = await getDownloadURL(audioRef);
 
-      // 2. Upload Cover (or use default)
+      // 3. Upload Cover (or use default)
       let coverImageURL = "https://picsum.photos/400/400";
       if (coverFile) {
         const coverRef = ref(storage, `covers/${currentUser.uid}/${Date.now()}_${coverFile.name}`);
@@ -111,7 +126,7 @@ const Upload: React.FC = () => {
         coverImageURL = await getDownloadURL(coverRef);
       }
 
-      // 3. Save to Firestore
+      // 4. Save to Firestore
       await addDoc(collection(db, "tracks"), {
         artistId: currentUser.uid,
         artistName: currentUser.displayName || "Anonymous",
@@ -125,7 +140,7 @@ const Upload: React.FC = () => {
         createdAt: serverTimestamp(),
         likesCount: 0,
         playsCount: 0,
-        duration: 180 // Mock duration
+        duration: duration || 180 
       });
 
       navigate('/feed');

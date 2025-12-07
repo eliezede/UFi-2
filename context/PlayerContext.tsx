@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
 import { Track, PlayerStatus } from '../types';
 
@@ -11,6 +12,7 @@ interface PlayerContextType {
   volume: number;
   setVolume: (vol: number) => void;
   progress: number;
+  duration: number; // New duration property
   seek: (time: number) => void;
   audioRef: React.MutableRefObject<HTMLAudioElement | null>;
   queue: Track[];
@@ -32,20 +34,29 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [status, setStatus] = useState<PlayerStatus>(PlayerStatus.STOPPED);
   const [volume, setVolume] = useState(0.8);
   const [progress, setProgress] = useState(0);
+  const [duration, setDuration] = useState(0); // Initialize duration
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (!audioRef.current) {
       audioRef.current = new Audio();
-      // REMOVED crossOrigin="anonymous" to fix playback issues with Firebase Storage
-      // audioRef.current.crossOrigin = "anonymous"; 
+      // Ensure crossOrigin is NOT set to "anonymous" to avoid CORS blocking from Firebase Storage
+      // without proper CORS headers on the bucket.
+      audioRef.current.crossOrigin = null; 
     }
     
     const audio = audioRef.current;
 
     const handleTimeUpdate = () => {
       setProgress(audio.currentTime);
+    };
+
+    const handleLoadedMetadata = () => {
+      setDuration(audio.duration);
+      if (status === PlayerStatus.PLAYING) {
+        audio.play().catch(e => console.error("Auto-resume failed", e));
+      }
     };
 
     const handleEnded = () => {
@@ -59,11 +70,13 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata); // Listen for duration availability
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
 
     return () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
     };
@@ -105,7 +118,10 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       // New track
       setCurrentTrack(track);
+      setDuration(track.duration || 0); // Reset/Preset duration from track data initially
+      setProgress(0);
       audioRef.current.src = track.audioURL;
+      audioRef.current.load();
       audioRef.current.play()
         .then(() => setStatus(PlayerStatus.PLAYING))
         .catch(err => console.error("Playback failed", err));
@@ -163,6 +179,7 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       volume,
       setVolume,
       progress,
+      duration,
       seek,
       audioRef,
       queue

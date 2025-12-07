@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { usePlayer } from '../context/PlayerContext';
 import { Play, Pause, SkipBack, SkipForward, Volume2, Heart, ListMusic, Maximize2 } from 'lucide-react';
@@ -5,17 +6,21 @@ import { PlayerStatus } from '../types';
 import AudioVisualizer from './AudioVisualizer';
 
 const PlayerBar: React.FC = () => {
-  const { currentTrack, status, togglePlayPause, playNext, playPrev, volume, setVolume, progress, seek, audioRef } = usePlayer();
+  const { currentTrack, status, togglePlayPause, playNext, playPrev, volume, setVolume, progress, duration, seek, audioRef } = usePlayer();
 
   if (!currentTrack) return null;
 
   const isPlaying = status === PlayerStatus.PLAYING;
 
   const formatTime = (seconds: number) => {
+    if (!seconds || isNaN(seconds)) return "0:00";
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
+
+  // Use dynamic duration from audio element (via context), fallback to track data, then default
+  const totalDuration = duration || currentTrack.duration || 180;
 
   return (
     <div className="fixed bottom-6 left-0 right-0 z-50 px-4 flex justify-center pointer-events-none">
@@ -70,7 +75,7 @@ const PlayerBar: React.FC = () => {
                         <input
                             type="range"
                             min="0"
-                            max={currentTrack.duration || 180}
+                            max={totalDuration}
                             value={progress}
                             onChange={(e) => seek(Number(e.target.value))}
                             className="absolute inset-0 z-10 w-full h-full opacity-0 cursor-pointer"
@@ -78,15 +83,15 @@ const PlayerBar: React.FC = () => {
                         <div className="w-full h-1 bg-slate-700 rounded-full overflow-hidden">
                             <div 
                                 className="h-full bg-gradient-to-r from-primary to-secondary" 
-                                style={{ width: `${(progress / (currentTrack.duration || 180)) * 100}%` }}
+                                style={{ width: `${(progress / totalDuration) * 100}%` }}
                             />
                         </div>
                         <div 
                             className="w-2.5 h-2.5 bg-white rounded-full absolute shadow ml-[-5px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                            style={{ left: `${(progress / (currentTrack.duration || 180)) * 100}%` }}
+                            style={{ left: `${(progress / totalDuration) * 100}%` }}
                         />
                     </div>
-                    <span className="text-[10px] text-gray-500 font-mono w-8">{currentTrack.duration ? formatTime(currentTrack.duration) : '--:--'}</span>
+                    <span className="text-[10px] text-gray-500 font-mono w-8">{formatTime(totalDuration)}</span>
                 </div>
             </div>
 
