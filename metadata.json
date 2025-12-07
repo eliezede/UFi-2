@@ -1,0 +1,7 @@
+{
+  "name": "U-Fi Music Social",
+  "description": "A social music platform to share original tracks, build playlists, and connect with artists. Features Firebase integration for real-time data and storage.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
