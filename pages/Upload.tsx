@@ -24,7 +24,9 @@ const Upload: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
 
   // Constants
-  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  const MAX_FILE_SIZE = 15 * 1024 * 1024; // Increased to 15MB
+  // Explicitly list extensions to fix iOS "Grayed out" files issue
+  const ACCEPTED_AUDIO_TYPES = "audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac";
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -37,14 +39,20 @@ const Upload: React.FC = () => {
   };
 
   const validateAndSetAudio = (file: File) => {
-    // 1. Check Type
-    if (!file.type.startsWith('audio/')) {
-      alert("Please select a valid audio file.");
+    // 1. Validation Logic
+    // We check startsWith('audio/') OR specific extensions because mobile browsers
+    // sometimes fail to identify the MIME type correctly from the Files app.
+    const isAudioMime = file.type.startsWith('audio/');
+    const hasAudioExtension = /\.(mp3|wav|m4a|aac|ogg|flac)$/i.test(file.name);
+
+    if (!isAudioMime && !hasAudioExtension) {
+      alert("Please select a valid audio file (MP3, WAV, M4A).");
       return;
     }
+    
     // 2. Check Size
     if (file.size > MAX_FILE_SIZE) {
-      alert("File is too large. Max size is 10MB.");
+      alert("File is too large. Max size is 15MB.");
       return;
     }
 
@@ -176,7 +184,7 @@ const Upload: React.FC = () => {
             <div className="flex flex-col items-center justify-center text-center cursor-pointer">
               <input 
                 type="file" 
-                accept="audio/*"
+                accept={ACCEPTED_AUDIO_TYPES}
                 onChange={handleAudioSelect}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
               />
@@ -188,7 +196,7 @@ const Upload: React.FC = () => {
               </h3>
               <p className="text-gray-400">or click to browse files</p>
               <div className="mt-4 px-3 py-1 bg-slate-800 rounded text-xs font-mono text-gray-500 border border-slate-700">
-                MP3, WAV, AAC (Max 10MB)
+                MP3, WAV, AAC, M4A (Max 15MB)
               </div>
             </div>
           )}
@@ -254,6 +262,9 @@ const Upload: React.FC = () => {
                         <option value="Lo-Fi">Lo-Fi</option>
                         <option value="R&B">R&B</option>
                         <option value="Indie">Indie</option>
+                        <option value="Kizomba">Kizomba</option>
+                        <option value="Samba">Samba</option>
+                        <option value="Funk">Funk</option>
                     </select>
                     </div>
                     <div>
