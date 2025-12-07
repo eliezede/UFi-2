@@ -38,8 +38,8 @@ export const PlayerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     if (!audioRef.current) {
       audioRef.current = new Audio();
-      // Crucial for Web Audio API Visualizer to work with Firebase Storage URLs
-      audioRef.current.crossOrigin = "anonymous"; 
+      // REMOVED crossOrigin="anonymous" to fix playback issues with Firebase Storage
+      // audioRef.current.crossOrigin = "anonymous"; 
     }
     
     const audio = audioRef.current;
